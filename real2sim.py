@@ -18,8 +18,8 @@ if __name__=='__main__':
   # parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/mustard0/mesh/textured_simple.obj')
   # parser.add_argument('--test_scene_dir', type=str, default=f'{code_dir}/demo_data/mustard0')
   
-  parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/mug0/mesh/scaled.obj')
-  parser.add_argument('--test_scene_dir', type=str, default=f'{code_dir}/demo_data/mug0')
+  parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/test1/mesh/scaled.obj')
+  parser.add_argument('--test_scene_dir', type=str, default=f'{code_dir}/demo_data/test6')
 
   parser.add_argument('--est_refine_iter', type=int, default=10)
   parser.add_argument('--track_refine_iter', type=int, default=4)
@@ -45,9 +45,14 @@ if __name__=='__main__':
   est = FoundationPose(model_pts=mesh.vertices, model_normals=mesh.vertex_normals, mesh=mesh, scorer=scorer, refiner=refiner, debug_dir=debug_dir, debug=debug, glctx=glctx)
   logging.info("estimator initialization done")
 
-  reader = YcbineoatReader(video_dir=args.test_scene_dir, shorter_side=None, zfar=np.inf)
+  reader = CustomReader(file_path=args.test_scene_dir, shorter_side=None, zfar=np.inf)
+  print("!!!!!!!!!!!!!!! len: ", len(reader))
+  print("!!!!!!!!!!!!!!! len: ", len(reader))
+  print("!!!!!!!!!!!!!!! len: ", len(reader))
+  
+  video_images = []
 
-  for i in range(len(reader.color_files)):
+  for i in range(len(reader)):
     logging.info(f'i:{i}')
     color = reader.get_color(i)
     depth = reader.get_depth(i)
@@ -67,7 +72,7 @@ if __name__=='__main__':
       pose = est.track_one(rgb=color, depth=depth, K=reader.K, iteration=args.track_refine_iter)
 
     os.makedirs(f'{debug_dir}/ob_in_cam', exist_ok=True)
-    np.savetxt(f'{debug_dir}/ob_in_cam/{reader.id_strs[i]}.txt', pose.reshape(4,4))
+    np.savetxt(f'{debug_dir}/ob_in_cam/{i}.txt', pose.reshape(4,4))
 
     if debug>=1:
       center_pose = pose@np.linalg.inv(to_origin)
@@ -76,8 +81,13 @@ if __name__=='__main__':
       cv2.imshow('1', vis[...,::-1])
       cv2.waitKey(1)
 
-
+    video_images.append( vis[...,::-1] )
     if debug>=2:
       os.makedirs(f'{debug_dir}/track_vis', exist_ok=True)
-      imageio.imwrite(f'{debug_dir}/track_vis/{reader.id_strs[i]}.png', vis)
-
+      imageio.imwrite(f'{debug_dir}/track_vis/{i}.png', vis)
+  video_name = 'video.avi'
+  height, width, layers = video_images[0].shape
+  video = cv2.VideoWriter(video_name, 0, 15, (width,height))
+  for idx, image in enumerate( video_images ):
+    video.write(image)
+  video.release()
