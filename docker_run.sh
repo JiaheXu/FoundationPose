@@ -9,4 +9,4 @@ docker run \
     --shm-size 16G \
     -v /dev/shm:/dev/shm \
     -v $DATA_PATH:/ws \
-    --name fp -it foundationpose
+    --name fp -it foundationpose_custom
