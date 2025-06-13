@@ -53,14 +53,19 @@ def get_bop_video_dirs(dataset):
   return video_dirs
 
 class CustomReader:
-  def __init__(self,file_path, downscale=1, shorter_side=None, zfar=np.inf):
-    self.file_path = file_path
+  def __init__(self, task_name, data_index, downscale=1, shorter_side=None, zfar=np.inf):
+    # self.file_path = file_path
+
+
+    self.task_name = task_name
+    self.data_index = data_index
+
     self.downscale = downscale
     self.zfar = zfar
     # self.color_files = sorted(glob.glob(f"{self.video_dir}/rgb/*.png"))
-    self.data = np.load(file_path + "/data.npy", allow_pickle=True)
+    self.data = np.load(f'/ws/data/real2sim/{task_name}/traj/{data_index}.npy', allow_pickle=True)
 
-    self.K = np.loadtxt(f'{file_path}/cam_K.txt').reshape(3,3)
+    self.K = np.loadtxt('/ws/data/real2sim/cam_K.txt').reshape(3,3)
 
     self.H,self.W = self.data[0]['rgb'].shape[:2]
 
@@ -96,7 +101,7 @@ class CustomReader:
     return color
 
   def get_mask(self,i):
-    mask = cv2.imread(f'{self.file_path}/mask.png',-1)
+    mask = cv2.imread(f'/ws/data/real2sim/{self.task_name}/label/{self.data_index}/mask_1.png',-1)
     if len(mask.shape)==3:
       for c in range(3):
         if mask[...,c].sum()>0:
