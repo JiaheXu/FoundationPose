@@ -11,6 +11,7 @@ from estimater import *
 from datareader import *
 import argparse
 from pathlib import Path
+import transforms3d as t3d
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser()
@@ -56,7 +57,8 @@ if __name__=='__main__':
   video_images = []
   center_poses = []
   traj_pose = []
-  keyposes = [190, 226, 266]
+  keyposes = []
+
   for i in range(len(reader)):
     logging.info(f'i:{i}')
     color = reader.get_color(i)
@@ -80,15 +82,19 @@ if __name__=='__main__':
     np.savetxt(f'{debug_dir}/ob_in_cam/{i}.txt', pose.reshape(4,4))
 
     if debug>=1:
-      center_pose = pose@np.linalg.inv(to_origin)
+      Rx = t3d.euler.euler2mat(np.pi* ( 1/6.0 + 1/18.0)  , 0, 0)
+      T = np.eye(4)
+      T[0:3,0:3] = Rx
+      center_pose = pose@np.linalg.inv(to_origin) @ T
       vis = draw_posed_3d_box(reader.K, img=color, ob_in_cam=center_pose, bbox=bbox)
       vis = draw_xyz_axis(color, ob_in_cam=center_pose, scale=0.1, K=reader.K, thickness=3, transparency=0, is_input_rgb=True)
-      
-      video_images.append(vis)
-      center_poses.append(center_pose)
+      # cv2.imshow('1', vis[...,::-1])
+      # cv2.waitKey(1)
 
-      cv2.imshow('1', vis)
-      cv2.waitKey(1)
+    video_images.append( vis[...,::-1] )
+    if debug>=2:
+      os.makedirs(f'{debug_dir}/track_vis', exist_ok=True)
+      imageio.imwrite(f'{debug_dir}/track_vis/{i}.png', vis)
 
     save_data_dir = f'/ws/data/real2sim/{args.task_name}/obj1_traj/'
     OUTPUT_DIR = Path(save_data_dir)
@@ -96,29 +102,6 @@ if __name__=='__main__':
     np.save(f'/ws/data/real2sim/{args.task_name}/obj1_traj/{args.data_index}.npy', traj_pose, allow_pickle=True)
 
   current_goal_idx = 0
-  
-
-  # final_video_images = []
-
-  # for idx in range(len(reader)):
-  #   print("idx: ", idx)
-  #   print("current_goal_idx: ", current_goal_idx)
-  #   if(current_goal_idx >= len(keyposes) ):
-  #     final_video_images.append(video_images[idx][...,::-1])
-  #     continue
-  #   if(idx > keyposes[current_goal_idx]):
-  #     current_goal_idx+=1
-
-  #   if(current_goal_idx >= len(keyposes) ):
-  #     final_video_images.append(video_images[idx][...,::-1])
-  #     continue
-
-  #   current_goal = center_poses[ keyposes[current_goal_idx] ]
-  #   # vis = draw_posed_3d_box(reader.K, img=video_images[idx], ob_in_cam=current_goal, bbox=bbox)
-  #   vis = draw_xyz_axis(video_images[idx], ob_in_cam=current_goal, scale=0.1, K=reader.K, thickness=3, transparency=0, is_input_rgb=True)
-  #   cv2.imshow('1', vis[...,::-1])
-  #   cv2.waitKey(1)
-  #   final_video_images.append(vis[...,::-1])
 
   video_name = f'video{args.data_index:02}.avi'
   height, width, layers = video_images[0].shape

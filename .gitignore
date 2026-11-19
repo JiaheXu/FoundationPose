@@ -39,6 +39,12 @@ artifacts/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
+
+*.npy
+demo_video/
+iphone/
+pour/
+
 .installed.cfg
 *.egg
 MANIFEST
